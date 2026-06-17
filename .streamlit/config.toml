@@ -1,0 +1,11 @@
+[logger]
+level = "error"
+
+[browser]
+gatherUsageStats = false
+
+[runner]
+fastReruns = true
+
+[theme]
+base = "dark"
