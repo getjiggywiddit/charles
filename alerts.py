@@ -150,14 +150,18 @@ def earnings_skip(symbol: str, days: int):
     _send(f"📅 *Skipped {symbol}* — earnings in {days} day(s). Blackout active.")
 
 
-def market_trend(direction: str, spy_pct: float):
-    icon = "📈" if direction == "UP" else "📉"
-    _notify(icon, f"Market trend: {direction}",
-            f"SPY {spy_pct:+.1f}% vs MA — buys {'enabled' if direction == 'UP' else 'suppressed'}",
+def market_trend(regime: str, momentum_pct: float, allow_longs: bool = True, description: str = ""):
+    icons = {"TRENDING_BULL": "📈", "TRENDING_BEAR": "📉",
+             "RANGING": "↔️", "VOLATILE": "⚡"}
+    icon = icons.get(regime, "🌡️")
+    buy_status = "enabled" if allow_longs else "suppressed"
+    _notify(icon, f"Market regime: {regime}",
+            f"Momentum {momentum_pct:+.1f}% — buys {buy_status}",
             "info")
-    _send(f"{icon} *Market trend: {direction}*\n"
-          f"SPY {spy_pct:+.1f}% vs 20-day MA — "
-          f"buy signals {'enabled' if direction == 'UP' else 'suppressed'}.")
+    _send(f"{icon} *Market regime: {regime}*\n"
+          f"{description}\n"
+          f"10-day momentum {momentum_pct:+.1f}% — "
+          f"buy signals {buy_status}.")
 
 
 def regime_changed(old: str, new: str, detail: dict):

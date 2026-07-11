@@ -1,5 +1,5 @@
 """
-main.py — v8  Press Play in JetBrains.
+main.py — v1.0
 Automatically uses Python 3.11 regardless of PyCharm interpreter setting.
 """
 
@@ -366,8 +366,9 @@ def _morning_routine():
     regime, detail = reg_mod.detect_regime()
     mults = reg_mod.regime_multipliers(regime)
     log.info(f"  🌡️  Regime: {regime} — {mults['description']}")
-    alerts.market_trend("UP" if "BULL" in regime else "DOWN",
-                        detail.get("momentum_10d", 0))
+    alerts.market_trend(regime, detail.get("momentum_10d", 0),
+                        allow_longs=mults.get("allow_longs", True),
+                        description=mults.get("description", ""))
 
     # Auto-tune confidence
     tuned = screener.get_tuned_confidence()
@@ -786,7 +787,7 @@ if __name__ == "__main__":
     _apply_wizard_settings()
 
     print("\n" + "=" * 60)
-    print("  🤖  AI Paper Trading Bot  v8  — Full Feature Edition")
+    print("  🤖  Charles AI Trading Bot  v1.0")
     print("=" * 60 + "\n")
 
     check_llm()
@@ -813,7 +814,7 @@ if __name__ == "__main__":
     time.sleep(2)
     launch_dashboard()
 
-    print(f"\n✅ Bot running — v8 full feature mode")
+    print(f"\n✅ Bot running — v1.0")
     print(f"📊 Dashboard:   http://localhost:{config.STREAMLIT_PORT}")
     llm_mode = config.LLM_PROVIDER if hasattr(config, "LLM_PROVIDER") else "rules"
     print(f"🧠 AI Engine:   {llm_mode.upper()}")

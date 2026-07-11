@@ -126,7 +126,7 @@ def _get_groq_key() -> str:
     try:
         import credential_manager as cm
         key = cm.get("GROQ_API_KEY")
-        if key and not key.startswith(("YOUR_","REPLACE_","")):
+        if key and not key.startswith(("YOUR_", "REPLACE_")):
             return key
     except Exception:
         pass

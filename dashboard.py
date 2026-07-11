@@ -391,10 +391,8 @@ with st.sidebar:
 
     wl = load_watchlist()
     if wl:
-        st.divider()
         st.caption("📋 Today's watchlist (auto-screened)")
         st.caption("📈 " + ", ".join(wl.get("stocks",[])))
-        st.caption("🪙 " + ", ".join(wl.get("crypto",[])))
 
     st.divider()
     auto_refresh = st.toggle("Auto-refresh (15s)", value=True)
@@ -732,11 +730,28 @@ with tab4:
         market = snap.get("market", {})
 
         try:
-            import market_filter as mf
-            bullish, spy_pct = mf.market_is_bullish()
-            trend_color = "green" if bullish else "red"
-            trend_label = "📈 BULLISH — buys enabled" if bullish else "📉 BEARISH — buys suppressed"
-            st.markdown(f"**SPY trend:** :{trend_color}[{trend_label}] ({spy_pct:+.2f}% vs MA{config.SPY_TREND_PERIOD})")
+            import regime as reg_mod
+            regime_name, regime_detail = reg_mod.detect_regime()
+            mults = reg_mod.regime_multipliers(regime_name)
+            allow_longs = mults.get("allow_longs", True)
+            allow_shorts = mults.get("allow_shorts", False)
+
+            regime_colors = {
+                "TRENDING_BULL": "green",
+                "TRENDING_BEAR": "red",
+                "RANGING":       "orange",
+                "VOLATILE":      "orange",
+            }
+            trend_color = regime_colors.get(regime_name, "gray")
+
+            buy_status = "buys enabled" if allow_longs else "buys suppressed"
+            short_status = " · shorts enabled" if allow_shorts else ""
+            trend_label = f"🌡️ {regime_name} — {buy_status}{short_status}"
+
+            st.markdown(f"**Market regime:** :{trend_color}[{trend_label}]")
+            st.caption(f"{mults.get('description', '')} · "
+                       f"momentum {regime_detail.get('momentum_10d', 0):+.2f}% · "
+                       f"ATR {regime_detail.get('atr_pct', 0):.2f}%")
         except Exception:
             pass
 

@@ -103,3 +103,87 @@ RSS_FEEDS = [
     # Stock specific
     "https://finance.yahoo.com/rss/2.0/headline?s=AAPL,MSFT,NVDA,TSLA,GOOGL",
 ]
+
+
+# ============================================================
+#  TRADING MODES  —  mild / medium / hot
+#  Set via: charles-mode mild|medium|hot
+#  Overrides the base values above when ACTIVE_MODE != "mild"
+# ============================================================
+import os
+try:
+    from dotenv import load_dotenv
+    _env_path = os.path.join(os.path.dirname(__file__), ".env")
+    if os.path.exists(_env_path):
+        load_dotenv(_env_path, encoding="utf-8")
+except Exception:
+    pass
+
+ACTIVE_MODE = os.environ.get("ACTIVE_MODE", "mild").strip().lower()
+if ACTIVE_MODE not in ("mild", "medium", "hot"):
+    ACTIVE_MODE = "mild"
+
+TRADING_MODES = {
+    "mild": {
+        "MAX_OPEN_POSITIONS":      4,
+        "MAX_POSITION_SIZE_PCT":   0.20,
+        "STOP_LOSS_PCT":           0.05,
+        "TAKE_PROFIT_PCT":         0.15,
+        "MIN_CONFIDENCE":          0.65,
+        "STOCK_SCAN_INTERVAL_MIN": 30,
+        "TRADE_COOLDOWN_HOURS":    4,
+        "MAX_DAILY_LOSS":          50.0,
+        "GROQ_TOKEN_BUDGET":       1500,   # tokens/min ceiling for this mode
+        "MAX_SYMBOLS_PER_CYCLE":   8,
+        "ALLOW_SHORTING":          False,  # ignores regime's allow_shorts
+        "DESCRIPTION":             "Current default. Conservative, fewer trades.",
+    },
+    "medium": {
+        "MAX_OPEN_POSITIONS":      6,
+        "MAX_POSITION_SIZE_PCT":   0.25,
+        "STOP_LOSS_PCT":           0.07,
+        "TAKE_PROFIT_PCT":         0.12,
+        "MIN_CONFIDENCE":          0.55,
+        "STOCK_SCAN_INTERVAL_MIN": 15,
+        "TRADE_COOLDOWN_HOURS":    2,
+        "MAX_DAILY_LOSS":          75.0,
+        "GROQ_TOKEN_BUDGET":       3000,
+        "MAX_SYMBOLS_PER_CYCLE":   15,
+        "ALLOW_SHORTING":          False,
+        "DESCRIPTION":             "Trades more often, moderate risk increase.",
+    },
+    "hot": {
+        "MAX_OPEN_POSITIONS":      10,
+        "MAX_POSITION_SIZE_PCT":   0.30,
+        "STOP_LOSS_PCT":           0.10,
+        "TAKE_PROFIT_PCT":         0.08,
+        "MIN_CONFIDENCE":          0.45,
+        "STOCK_SCAN_INTERVAL_MIN": 5,
+        "TRADE_COOLDOWN_HOURS":    0.5,
+        "MAX_DAILY_LOSS":          100.0,
+        "GROQ_TOKEN_BUDGET":       5000,   # stays under 6K TPM free-tier ceiling
+        "MAX_SYMBOLS_PER_CYCLE":   30,
+        "ALLOW_SHORTING":          True,   # only used when regime.allow_shorts is also True
+        "DESCRIPTION":             "Intraday, high frequency, highest risk. Shorts enabled when regime allows.",
+    },
+}
+
+def get_mode_config(mode: str = None) -> dict:
+    """Returns the parameter dict for the given mode (or ACTIVE_MODE if None)."""
+    mode = mode or ACTIVE_MODE
+    return TRADING_MODES.get(mode, TRADING_MODES["mild"])
+
+
+# ── Apply active mode overrides on top of base values ──────────────────────
+_mode_cfg = get_mode_config()
+MAX_OPEN_POSITIONS     = _mode_cfg["MAX_OPEN_POSITIONS"]
+MAX_POSITION_SIZE_PCT  = _mode_cfg["MAX_POSITION_SIZE_PCT"]
+STOP_LOSS_PCT          = _mode_cfg["STOP_LOSS_PCT"]
+TAKE_PROFIT_PCT        = _mode_cfg["TAKE_PROFIT_PCT"]
+MIN_CONFIDENCE         = _mode_cfg["MIN_CONFIDENCE"]
+STOCK_SCAN_INTERVAL_MIN = _mode_cfg["STOCK_SCAN_INTERVAL_MIN"]
+TRADE_COOLDOWN_HOURS   = _mode_cfg["TRADE_COOLDOWN_HOURS"]
+MAX_DAILY_LOSS         = _mode_cfg["MAX_DAILY_LOSS"]
+GROQ_TOKEN_BUDGET      = _mode_cfg["GROQ_TOKEN_BUDGET"]
+MAX_SYMBOLS_PER_CYCLE  = _mode_cfg["MAX_SYMBOLS_PER_CYCLE"]
+ALLOW_SHORTING_MODE    = _mode_cfg["ALLOW_SHORTING"]

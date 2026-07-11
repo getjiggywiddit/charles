@@ -1,79 +1,70 @@
-# Charles
+# AI Paper Trading Bot
 
-Self-hosted AI trading bot powered by Groq's LLM. Charles screens a 100-stock universe, scores signals using a combination of technical indicators and an LLM reasoning layer, and trades on Alpaca's paper trading API 24/7.
+AI-powered paper trading bot for stocks and crypto.
+Runs entirely locally — zero ongoing API costs.
 
-Paper trading by default — no real money at risk. Live trading is optional and requires your own Alpaca live keys.
+## Quick Start
 
-## Features
+### 1. Fill in your config
+Open `config.py` and add your Alpaca paper trading keys:
+```
+ALPACA_API_KEY    = "your key here"
+ALPACA_SECRET_KEY = "your secret here"
+```
+Get free paper trading keys at https://alpaca.markets → sign up → Paper Trading → API Keys
 
-- 100-stock screener across sectors, with a mid-day refresh
-- Technical signals: RSI, MACD, 50-day moving average breakout
-- LLM-based reasoning layer for signal scoring (via Groq)
-- Sector rotation scoring
-- Relative strength vs SPY
-- 52-week high breakout detection
-- Dynamic trailing stops
-- Earnings exit protection
-- Pre-market gap filter
-- Time-based exits for stale trades
-- Streamlit dashboard
-- Telegram alerts
+### 2. Install Ollama + pull a model
+Download Ollama from https://ollama.com then run in terminal:
+```
+ollama pull llama3.1
+```
+(or `ollama pull mistral` for a smaller/faster model)
 
-## Requirements
+### 3. Press Play on main.py in JetBrains
+That's it. The bot will:
+- Auto-install all Python packages
+- Run an immediate data collection + trading cycle
+- Schedule daily runs at 9:00 AM
+- Open the dashboard at http://localhost:8501
 
-- Python 3.11
-- Free API keys:
-  - [Alpaca](https://alpaca.markets) (paper trading)
-  - [Groq](https://console.groq.com) (LLM reasoning engine)
-  - [Telegram bot token](https://core.telegram.org/bots) (for alerts)
+## File Structure
+```
+tradingbot/
+├── main.py          ← Press Play here
+├── config.py        ← Your settings & watchlist
+├── collector.py     ← Fetches prices, news, sentiment
+├── brain.py         ← AI decision engine (Ollama + rules)
+├── portfolio.py     ← Paper trade execution & tracking
+├── dashboard.py     ← Streamlit web dashboard
+├── requirements.txt ← Python dependencies
+└── data/
+    ├── latest.json  ← Most recent market snapshot
+    ├── portfolio.json← Your virtual portfolio state
+    └── trades.json  ← Full trade history
+```
 
-## Setup
+## Free Data Sources Used
+| Data | Source | Cost |
+|------|---------|------|
+| Stock prices | Yahoo Finance (yfinance) | Free |
+| Crypto prices | CoinGecko public API | Free |
+| News headlines | RSS feeds (Reuters, Yahoo, CoinDesk) | Free |
+| Sentiment scoring | VADER NLP (local) | Free |
+| Fear & Greed index | CNN (scraped) | Free |
+| AI decisions | Ollama local LLM | Free |
+| Paper trading | Alpaca paper account | Free |
 
-You can run Charles on your own computer or on a cloud server so it runs 24/7. Either way, the steps are the same.
+## Customising the Watchlist
+Edit `config.py`:
+```python
+STOCK_WATCHLIST  = ["AAPL", "MSFT", "NVDA", "TSLA", "GOOGL"]
+CRYPTO_WATCHLIST = ["BTC/USD", "ETH/USD", "SOL/USD"]
+```
 
-1. Clone this repo:
-   ```bash
-   git clone https://github.com/getjiggywiddit/charles.git
-   cd charles
-   ```
-
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Copy `.env.example` to `.env` and fill in your API keys:
-   ```bash
-   cp .env.example .env
-   ```
-
-4. Run Charles:
-   ```bash
-   python main.py
-   ```
-
-5. A setup wizard opens in your browser to finish configuration. Once it's done, the dashboard is available at `http://localhost:8501`.
-
-First startup can take a few minutes while it loads models and connects to Alpaca and Groq.
-
-## Running 24/7 on a server
-
-To keep Charles running continuously, deploy it on a cloud server (e.g. a $12/month DigitalOcean droplet) instead of your own machine. The setup steps are the same as above — clone, install dependencies, add your `.env`, and run.
-
-Full walkthrough: [charles-bot.xyz/setup.html](https://charles-bot.xyz/setup.html)
-
-## Dashboard
-
-Once running, visit `http://localhost:8501` (or `http://YOUR_SERVER_IP:8501` on a server) to view live positions, signals, and performance.
-
-## Disclaimer
-
-Charles trades in Alpaca's paper trading environment by default — simulated orders, no real money. This is for educational and research purposes, not financial advice. Live trading is possible by configuring live Alpaca keys, but you take on full responsibility and risk for doing so.
-
-## Contributing
-
-Pull requests are welcome. Feel free to fork and extend the strategy logic, add new signals, or improve the dashboard.
-
-## Support
-
-Setup help and documentation: [charles-bot.xyz/setup.html](https://charles-bot.xyz/setup.html)
+## Adjusting Risk
+```python
+VIRTUAL_CASH          = 100_000.0  # Starting balance
+MAX_POSITION_SIZE_PCT = 0.05       # 5% max per trade
+STOP_LOSS_PCT         = 0.05       # 5% stop loss
+MIN_CONFIDENCE        = 0.60       # LLM confidence threshold
+```
