@@ -133,8 +133,9 @@ TRADING_MODES = {
         "STOCK_SCAN_INTERVAL_MIN": 30,
         "TRADE_COOLDOWN_HOURS":    4,
         "MAX_DAILY_LOSS":          50.0,
-        "GROQ_TOKEN_BUDGET":       1500,   # tokens/min ceiling for this mode
+        "GROQ_TOKEN_BUDGET":       6400,   # matches full 8-symbol batch, paced
         "MAX_SYMBOLS_PER_CYCLE":   8,
+        "GROQ_CALL_DELAY_SEC":     8.6,
         "ALLOW_SHORTING":          False,  # ignores regime's allow_shorts
         "DESCRIPTION":             "Current default. Conservative, fewer trades.",
     },
@@ -147,8 +148,9 @@ TRADING_MODES = {
         "STOCK_SCAN_INTERVAL_MIN": 15,
         "TRADE_COOLDOWN_HOURS":    2,
         "MAX_DAILY_LOSS":          75.0,
-        "GROQ_TOKEN_BUDGET":       3000,
+        "GROQ_TOKEN_BUDGET":       12000,  # matches full 15-symbol batch, paced
         "MAX_SYMBOLS_PER_CYCLE":   15,
+        "GROQ_CALL_DELAY_SEC":     8.6,
         "ALLOW_SHORTING":          False,
         "DESCRIPTION":             "Trades more often, moderate risk increase.",
     },
@@ -161,8 +163,9 @@ TRADING_MODES = {
         "STOCK_SCAN_INTERVAL_MIN": 5,
         "TRADE_COOLDOWN_HOURS":    0.5,
         "MAX_DAILY_LOSS":          100.0,
-        "GROQ_TOKEN_BUDGET":       5000,   # stays under 6K TPM free-tier ceiling
-        "MAX_SYMBOLS_PER_CYCLE":   30,
+        "GROQ_TOKEN_BUDGET":       22400,  # matches 28-symbol batch, paced
+        "MAX_SYMBOLS_PER_CYCLE":   28,     # capped so paced Groq calls fit in the 5-min interval
+        "GROQ_CALL_DELAY_SEC":     8.6,
         "ALLOW_SHORTING":          True,   # only used when regime.allow_shorts is also True
         "DESCRIPTION":             "Intraday, high frequency, highest risk. Shorts enabled when regime allows.",
     },
@@ -175,8 +178,9 @@ TRADING_MODES = {
         "STOCK_SCAN_INTERVAL_MIN": 3,      # fastest interval that stays under Groq TPM budget
         "TRADE_COOLDOWN_HOURS":    0.25,
         "MAX_DAILY_LOSS":          150.0,  # raised ceiling — still a hard floor, not removed
-        "GROQ_TOKEN_BUDGET":       5800,   # right up against the 6K TPM free-tier ceiling
-        "MAX_SYMBOLS_PER_CYCLE":   40,
+        "GROQ_TOKEN_BUDGET":       12800,  # matches 16-symbol batch, paced
+        "MAX_SYMBOLS_PER_CYCLE":   16,     # 3-min interval only fits 16 paced Groq calls safely
+        "GROQ_CALL_DELAY_SEC":     8.6,
         "ALLOW_SHORTING":          True,
         "SHORT_IGNORES_REGIME":    True,   # NEW: per-symbol short trigger, not gated by SPY-wide regime
         "ALLOW_OPTIONS":           False,  # reserved — not wired to execution yet
@@ -202,4 +206,5 @@ TRADE_COOLDOWN_HOURS   = _mode_cfg["TRADE_COOLDOWN_HOURS"]
 MAX_DAILY_LOSS         = _mode_cfg["MAX_DAILY_LOSS"]
 GROQ_TOKEN_BUDGET      = _mode_cfg["GROQ_TOKEN_BUDGET"]
 MAX_SYMBOLS_PER_CYCLE  = _mode_cfg["MAX_SYMBOLS_PER_CYCLE"]
+GROQ_CALL_DELAY_SEC    = _mode_cfg.get("GROQ_CALL_DELAY_SEC", 8.6)
 ALLOW_SHORTING_MODE    = _mode_cfg["ALLOW_SHORTING"]

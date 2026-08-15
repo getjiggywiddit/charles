@@ -211,11 +211,26 @@ def llm_decision(
     position_context: dict | None = None,
     session_info: dict | None = None,
     macro_event: str | None = None,
+    force_rules_only: bool = False,
 ) -> dict:
     """
     Full AI decision with position context, time-of-day, and macro awareness.
+    If force_rules_only is True, skips Groq entirely and returns the rule-based
+    signal — used when the per-cycle Groq token budget has been exhausted.
     """
     rule_signal, rule_score = technical_signal(d)
+
+    if force_rules_only:
+        action = rule_signal
+        if action == "SHORT":
+            action = "SELL"
+        return {
+            "action":     action,
+            "confidence": 0.55,
+            "reasoning":  f"Token budget exhausted this cycle — rule fallback: "
+                          f"score={rule_score:+.2f}",
+            "source":     "rules",
+        }
     headlines_text = "\n".join(f"- {h}" for h in headlines[:5]) or "None"
 
     # ── Position context block ──
@@ -320,6 +335,19 @@ Respond ONLY with valid JSON, no extra text:
 
 # ── Full snapshot analysis ────────────────────────────────────────────────────
 
+def _symbol_short_eligible(d: dict) -> bool:
+    """Per-symbol short trigger for extreme mode - overbought + own-trend breakdown + MACD turning down."""
+    rsi = d.get("rsi", 50)
+    macd = d.get("macd", 0)
+    macd_sig = d.get("macd_signal", 0)
+    price = d.get("price", 0)
+    ma20 = d.get("ma20", price)
+    overbought = rsi > config.RSI_OVERBOUGHT
+    own_breakdown = price < ma20
+    macd_turning_down = macd < macd_sig
+    return overbought and own_breakdown and macd_turning_down
+
+
 def analyse_snapshot(
     snapshot: dict,
     regime: str = "TRENDING_BULL",
@@ -365,7 +393,26 @@ def analyse_snapshot(
     market     = snapshot.get("market", {})
     positions  = open_positions or {}
 
+    # ── Per-cycle Groq token budget enforcement ─────────────────────────────
+    EST_TOKENS_PER_CALL = 800
+    token_budget = getattr(config, "GROQ_TOKEN_BUDGET", 6000)
+    tokens_used_this_cycle = 0
+    budget_exhausted_logged = False
+
     for symbol, d in market.items():
+        force_rules_only = False
+        if tokens_used_this_cycle + EST_TOKENS_PER_CALL > token_budget:
+            if not budget_exhausted_logged:
+                log.warning(f"  ⚠️  Groq token budget ({token_budget}) reached this cycle — "
+                            f"remaining symbols use rule-based fallback")
+                budget_exhausted_logged = True
+            force_rules_only = True
+        else:
+            tokens_used_this_cycle += EST_TOKENS_PER_CALL
+        # Pace Groq calls so they never burst past the TPM ceiling
+        if not force_rules_only:
+            import time as _time
+            _time.sleep(getattr(config, "GROQ_CALL_DELAY_SEC", 8.6))
         log.info(f"🧠 Analysing {symbol}...")
 
         sentiment = sentiment_for_symbol(symbol, news)
@@ -382,13 +429,19 @@ def analyse_snapshot(
         # Suppress new buys during macro blackout (still re-evaluate existing)
         effective_macro = macro_event if (in_blackout and not pos_ctx["held"]) else None
 
+        # Extreme mode: per-symbol short trigger overrides the regime-wide gate
+        symbol_allow_short = allow_short
+        if short_ignores_regime:
+            symbol_allow_short = _symbol_short_eligible(d)
+
         decision = llm_decision(
             symbol, d, sentiment, headlines,
             regime=regime,
-            allow_short=allow_short,
+            allow_short=symbol_allow_short,
             position_context=pos_ctx,
             session_info=sess,
             macro_event=effective_macro,
+            force_rules_only=force_rules_only,
         )
 
         # Override to HOLD during avoid windows for new entries
