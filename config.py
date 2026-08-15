@@ -120,7 +120,7 @@ except Exception:
     pass
 
 ACTIVE_MODE = os.environ.get("ACTIVE_MODE", "mild").strip().lower()
-if ACTIVE_MODE not in ("mild", "medium", "hot"):
+if ACTIVE_MODE not in ("mild", "medium", "hot", "extreme"):
     ACTIVE_MODE = "mild"
 
 TRADING_MODES = {
@@ -165,6 +165,22 @@ TRADING_MODES = {
         "MAX_SYMBOLS_PER_CYCLE":   30,
         "ALLOW_SHORTING":          True,   # only used when regime.allow_shorts is also True
         "DESCRIPTION":             "Intraday, high frequency, highest risk. Shorts enabled when regime allows.",
+    },
+    "extreme": {
+        "MAX_OPEN_POSITIONS":      99,     # effectively uncapped — capital runs out first
+        "MAX_POSITION_SIZE_PCT":   0.80,   # 80% of total capital per position
+        "STOP_LOSS_PCT":           0.12,
+        "TAKE_PROFIT_PCT":         0.06,   # take profit fast, this mode is about frequency
+        "MIN_CONFIDENCE":          0.35,   # lowest bar of all modes
+        "STOCK_SCAN_INTERVAL_MIN": 3,      # fastest interval that stays under Groq TPM budget
+        "TRADE_COOLDOWN_HOURS":    0.25,
+        "MAX_DAILY_LOSS":          150.0,  # raised ceiling — still a hard floor, not removed
+        "GROQ_TOKEN_BUDGET":       5800,   # right up against the 6K TPM free-tier ceiling
+        "MAX_SYMBOLS_PER_CYCLE":   40,
+        "ALLOW_SHORTING":          True,
+        "SHORT_IGNORES_REGIME":    True,   # NEW: per-symbol short trigger, not gated by SPY-wide regime
+        "ALLOW_OPTIONS":           False,  # reserved — not wired to execution yet
+        "DESCRIPTION":             "No meaningful position limits. 80% capital per trade, fastest scan interval possible under API budget, shorts fire on per-symbol technical breakdown regardless of overall market regime. Kill switch is the only backstop.",
     },
 }
 

@@ -338,6 +338,12 @@ def analyse_snapshot(
 
     allow_short = mults.get("allow_shorts", False)
 
+    # Extreme mode: shorts can fire per-symbol regardless of overall regime,
+    # based on the symbol's own technical breakdown rather than the SPY-wide gate.
+    short_ignores_regime = getattr(config, "SHORT_IGNORES_REGIME", False)
+    if short_ignores_regime:
+        allow_short = True  # per-symbol gate applied below in _symbol_short_eligible()
+
     # Get session and macro context once for all symbols
     try:
         import timeofday as tod
