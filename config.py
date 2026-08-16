@@ -144,7 +144,7 @@ TRADING_MODES = {
         "MAX_POSITION_SIZE_PCT":   0.25,
         "STOP_LOSS_PCT":           0.07,
         "TAKE_PROFIT_PCT":         0.12,
-        "MIN_CONFIDENCE":          0.55,
+        "MIN_CONFIDENCE":          0.62,
         "STOCK_SCAN_INTERVAL_MIN": 15,
         "TRADE_COOLDOWN_HOURS":    2,
         "MAX_DAILY_LOSS":          75.0,
@@ -159,7 +159,7 @@ TRADING_MODES = {
         "MAX_POSITION_SIZE_PCT":   0.30,
         "STOP_LOSS_PCT":           0.10,
         "TAKE_PROFIT_PCT":         0.08,
-        "MIN_CONFIDENCE":          0.45,
+        "MIN_CONFIDENCE":          0.59,
         "STOCK_SCAN_INTERVAL_MIN": 5,
         "TRADE_COOLDOWN_HOURS":    0.5,
         "MAX_DAILY_LOSS":          100.0,
@@ -174,7 +174,7 @@ TRADING_MODES = {
         "MAX_POSITION_SIZE_PCT":   0.80,   # 80% of total capital per position
         "STOP_LOSS_PCT":           0.12,
         "TAKE_PROFIT_PCT":         0.06,   # take profit fast, this mode is about frequency
-        "MIN_CONFIDENCE":          0.35,   # lowest bar of all modes
+        "MIN_CONFIDENCE":          0.56,   # lowest bar of all modes
         "STOCK_SCAN_INTERVAL_MIN": 3,      # fastest interval that stays under Groq TPM budget
         "TRADE_COOLDOWN_HOURS":    0.25,
         "MAX_DAILY_LOSS":          150.0,  # raised ceiling — still a hard floor, not removed
