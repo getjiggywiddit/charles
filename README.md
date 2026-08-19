@@ -75,9 +75,9 @@ charles-mode extreme
 | Mode | Max positions | Max position size | Min confidence | Scan interval | Shorting |
 |------|---------------|--------------------|-----------------|----------------|----------|
 | mild | 4 | 20% | 0.65 | 30 min | No |
-| medium | 6 | 25% | 0.55 | 15 min | No |
-| hot | 10 | 30% | 0.45 | 5 min | Yes, when regime allows |
-| extreme | ~uncapped | 80% | 0.35 | 3 min | Yes, per-symbol technical trigger, regardless of regime |
+| medium | 6 | 25% | 0.62 | 15 min | No |
+| hot | 10 | 30% | 0.59 | 5 min | Yes, when regime allows |
+| extreme | ~uncapped | 80% | 0.56 | 3 min | Yes, per-symbol technical trigger, regardless of regime |
 
 **Extreme mode carries substantially more risk than the others** — a single position can consume most of the account's capital, and shorting is not gated by the overall market regime. The daily loss kill switch is raised in this mode but not removed; it remains the only hard backstop. Consider running mild or medium first to get a feel for how the bot behaves before switching to hot or extreme.
 
