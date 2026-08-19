@@ -29,7 +29,7 @@ You can run Charles on your own computer or on a cloud server so it runs 24/7. E
 
 1. Clone the repo:
    ```
-   git clone https://github.com/getjiggywiddit/charles.git
+   git clone https://github.com/nswansonprojects/charles.git
    cd charles
    ```
 
