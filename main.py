@@ -278,6 +278,7 @@ def _get_position_context() -> dict:
             sym = p["symbol"]
             # Try to find hold duration from trade log
             hold_days = "?"
+            hold_minutes = None
             try:
                 import json, os
                 tf = os.path.join(os.path.dirname(__file__), "data", "trades.json")
@@ -289,6 +290,7 @@ def _get_position_context() -> dict:
                         from datetime import datetime, timezone
                         last_buy = datetime.fromisoformat(buys[-1]["timestamp"])
                         hold_days = (datetime.now(timezone.utc) - last_buy).days
+                        hold_minutes = (datetime.now(timezone.utc) - last_buy).total_seconds() / 60
             except Exception:
                 pass
 
@@ -309,6 +311,7 @@ def _get_position_context() -> dict:
                 "market_value":   p.get("market_value", 0),
                 "trailing_stop":  ts_val,
                 "hold_days":      hold_days,
+                "hold_minutes":   hold_minutes,
             }
         return positions
     except Exception as e:
@@ -321,6 +324,16 @@ def _run_stock_cycle():
     if rm.is_trading_halted():
         log.warning("🚨 Daily loss limit active — stock cycle skipped")
         return
+    # Skip new order placement if the market isn't genuinely open yet —
+    # the cron hour range can fire a few minutes before Alpaca's real open,
+    # and orders submitted then just sit unfilled until open anyway.
+    try:
+        clock = alpaca._client().get_clock()
+        if not clock.is_open:
+            log.info(f"  🕐 Market not open yet (next open: {clock.next_open}) — skipping stock cycle")
+            return
+    except Exception as e:
+        log.debug(f"Market clock check failed: {e} — proceeding anyway")
     # Time-of-day and macro checks
     sess = timeofday.session_info()
     log.info(f"📈 Stock cycle... [{sess.get('phase','?')} | {sess.get('time_et','?')}]")

@@ -149,7 +149,7 @@ def _ask_groq(prompt: str) -> str:
                 "model":       config.GROQ_MODEL,
                 "messages":    [{"role": "user", "content": prompt}],
                 "temperature": 0.2,
-                "max_tokens":  400,
+                "max_tokens":  1500,   # gpt-oss-20b spends tokens on internal reasoning before the answer
             },
             timeout=30,
         )
@@ -335,19 +335,6 @@ Respond ONLY with valid JSON, no extra text:
 
 # ── Full snapshot analysis ────────────────────────────────────────────────────
 
-def _symbol_short_eligible(d: dict) -> bool:
-    """Per-symbol short trigger for extreme mode - overbought + own-trend breakdown + MACD turning down."""
-    rsi = d.get("rsi", 50)
-    macd = d.get("macd", 0)
-    macd_sig = d.get("macd_signal", 0)
-    price = d.get("price", 0)
-    ma20 = d.get("ma20", price)
-    overbought = rsi > config.RSI_OVERBOUGHT
-    own_breakdown = price < ma20
-    macd_turning_down = macd < macd_sig
-    return overbought and own_breakdown and macd_turning_down
-
-
 def analyse_snapshot(
     snapshot: dict,
     regime: str = "TRENDING_BULL",
@@ -365,12 +352,6 @@ def analyse_snapshot(
         mults = {"allow_shorts": False, "allow_hedges": False}
 
     allow_short = mults.get("allow_shorts", False)
-
-    # Extreme mode: shorts can fire per-symbol regardless of overall regime,
-    # based on the symbol's own technical breakdown rather than the SPY-wide gate.
-    short_ignores_regime = getattr(config, "SHORT_IGNORES_REGIME", False)
-    if short_ignores_regime:
-        allow_short = True  # per-symbol gate applied below in _symbol_short_eligible()
 
     # Get session and macro context once for all symbols
     try:
@@ -394,7 +375,7 @@ def analyse_snapshot(
     positions  = open_positions or {}
 
     # ── Per-cycle Groq token budget enforcement ─────────────────────────────
-    EST_TOKENS_PER_CALL = 800
+    EST_TOKENS_PER_CALL = 900  # measured ~643 real tokens on gpt-oss-20b, +margin
     token_budget = getattr(config, "GROQ_TOKEN_BUDGET", 6000)
     tokens_used_this_cycle = 0
     budget_exhausted_logged = False
@@ -429,20 +410,32 @@ def analyse_snapshot(
         # Suppress new buys during macro blackout (still re-evaluate existing)
         effective_macro = macro_event if (in_blackout and not pos_ctx["held"]) else None
 
-        # Extreme mode: per-symbol short trigger overrides the regime-wide gate
-        symbol_allow_short = allow_short
-        if short_ignores_regime:
-            symbol_allow_short = _symbol_short_eligible(d)
-
         decision = llm_decision(
             symbol, d, sentiment, headlines,
             regime=regime,
-            allow_short=symbol_allow_short,
+            allow_short=allow_short,
             position_context=pos_ctx,
             session_info=sess,
             macro_event=effective_macro,
             force_rules_only=force_rules_only,
         )
+
+        # Minimum hold time: don't let Groq flip-flop out of a fresh position
+        # unless it's a genuinely high-confidence SELL. Trailing stop is separate
+        # and unaffected by this — it can still close the position mechanically.
+        MIN_HOLD_MINUTES = 15
+        SELL_OVERRIDE_CONFIDENCE = 0.75
+        hold_minutes = pos_ctx.get("hold_minutes")
+        if (pos_ctx["held"] and decision["action"] == "SELL"
+                and hold_minutes is not None and hold_minutes < MIN_HOLD_MINUTES
+                and decision.get("confidence", 0) < SELL_OVERRIDE_CONFIDENCE):
+            log.info(f"  ⏳ {symbol}: held only {hold_minutes:.0f}m, "
+                     f"confidence {decision.get('confidence', 0):.0%} below "
+                     f"{SELL_OVERRIDE_CONFIDENCE:.0%} override — HOLD instead of SELL")
+            decision["action"]    = "HOLD"
+            decision["reasoning"] = (f"Min hold time: {hold_minutes:.0f}m held, "
+                                      f"SELL confidence {decision.get('confidence', 0):.0%} "
+                                      f"too low to exit early. Original: {decision.get('reasoning', '')}")
 
         # Override to HOLD during avoid windows for new entries
         if (sess.get("avoid_trading") and decision["action"] == "BUY"

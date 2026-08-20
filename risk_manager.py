@@ -40,7 +40,11 @@ def calc_atr(symbol: str, period: int = 14) -> float:
                 abs(highs[i]  - closes[i-1]),
                 abs(lows[i]   - closes[i-1]),
             ))
-        return sum(trs[-period:]) / period
+        result = sum(trs[-period:]) / period
+        if result != result:  # NaN check (NaN is the only value that != itself)
+            log.debug(f"ATR calc for {symbol} produced NaN — falling back to 0.0")
+            return 0.0
+        return result
     except Exception as e:
         log.debug(f"ATR calc failed for {symbol}: {e}")
         return 0.0
